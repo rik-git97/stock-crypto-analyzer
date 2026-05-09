@@ -1,11 +1,10 @@
-"""Weekly-rebalance backtest engine with vol-targeted sizing and ATR trailing stops.
+"""Weekly-rebalance backtest engine.
 
-Simplified v1:
-- prices: wide DataFrame of close (or adj_close) per ticker; index daily
-- weekly rebalance Monday open (first bar of each week present in the index)
-- ATR proxy: rolling std of daily returns × close (since OHLC not always available)
-- Cost applied on portfolio turnover at each rebalance
-- Borrow carry on shorts daily
+v2 features (additive, all backwards-compatible):
+- accept precomputed signal DataFrame (signal_df) for sector-neutral / residual variants
+- long_only: skip shorts entirely
+- trend_filter_window: per-name SMA filter — long requires price > SMA, short requires price < SMA
+- regime_filter_index: gate gross exposure when index < 200-DMA
 """
 from __future__ import annotations
 from typing import Any
@@ -32,11 +31,19 @@ def run_backtest(
     initial_equity: float = 100_000.0,
     regime_filter_index: pd.Series | None = None,
     regime_sma: int = 200,
+    signal_df: pd.DataFrame | None = None,
+    long_only: bool = False,
+    trend_filter_window: int | None = None,
 ) -> dict[str, Any]:
     closes = prices.copy().sort_index().astype(float)
     closes = closes.dropna(how="all")
     rets = closes.pct_change().fillna(0.0)
-    z = compute_momentum_zscore(closes)
+    z = signal_df.reindex(closes.index).reindex(closes.columns, axis=1) if signal_df is not None else compute_momentum_zscore(closes)
+
+    if trend_filter_window:
+        sma = closes.rolling(trend_filter_window).mean()
+    else:
+        sma = None
 
     rebal_dates = closes.resample(rebalance).first().index.intersection(closes.index)
 
@@ -49,6 +56,8 @@ def run_backtest(
     atr_proxy = (rets.rolling(atr_period).std().fillna(0.0)) * closes
     if regime_filter_index is not None:
         regime_sma_series = regime_filter_index.rolling(regime_sma).mean()
+    else:
+        regime_sma_series = None
 
     equity = pd.Series(index=closes.index, dtype=float)
     equity.iloc[0] = initial_equity
@@ -56,14 +65,12 @@ def run_backtest(
     trades: list[dict] = []
 
     for i, dt in enumerate(closes.index):
-        # 1) carry forward equity by daily P&L
         if i > 0:
             day_ret = float((held * rets.loc[dt]).sum())
             short_gross = float(sum(abs(w) for w in held if w < 0))
             borrow = borrow_carry_bps_per_day("short") / 1e4 * short_gross
             equity.iloc[i] = equity.iloc[i - 1] * (1 + day_ret - borrow)
 
-        # 2) ATR stop check
         breached: list[str] = []
         for t, w in held.items():
             if w == 0:
@@ -95,13 +102,11 @@ def run_backtest(
             trail_stops.pop(t, None); trail_dirs.pop(t, None)
             entry_prices.pop(t, None); entry_atr.pop(t, None)
 
-        # 3) weekly rebalance
         if dt in rebal_dates:
             zrow = z.loc[dt].dropna()
             if len(zrow) >= 10:
-                # regime filter — halve gross if index below SMA
                 gross_eff = gross_cap
-                if regime_filter_index is not None and dt in regime_sma_series.index:
+                if regime_sma_series is not None and dt in regime_sma_series.index:
                     sma_val = regime_sma_series.loc[dt]
                     spot = regime_filter_index.loc[dt] if dt in regime_filter_index.index else None
                     if spot is not None and not pd.isna(sma_val) and spot < sma_val:
@@ -109,17 +114,37 @@ def run_backtest(
 
                 n = len(zrow)
                 n_top = max(1, int(n * top_pct))
-                n_bot = max(1, int(n * bottom_pct))
                 longs = zrow.nlargest(n_top).index
-                shorts = zrow.nsmallest(n_bot).index
+
+                if sma is not None:
+                    px_today = closes.loc[dt]
+                    sma_today = sma.loc[dt]
+                    longs = [t for t in longs if not pd.isna(sma_today.get(t)) and px_today.get(t, np.nan) > sma_today.get(t)]
 
                 lookback_window = rets.loc[:dt].tail(60)
-                w_long_raw = vol_target_weights(lookback_window[longs], target_vol_per_pos)
-                w_short_raw = -vol_target_weights(lookback_window[shorts], target_vol_per_pos)
+                if len(longs) > 0:
+                    w_long_raw = vol_target_weights(lookback_window[list(longs)], target_vol_per_pos)
+                else:
+                    w_long_raw = pd.Series(dtype=float)
 
-                target = pd.Series(0.0, index=closes.columns)
-                target.loc[w_long_raw.index] = w_long_raw.values
-                target.loc[w_short_raw.index] = w_short_raw.values
+                if long_only:
+                    target = pd.Series(0.0, index=closes.columns)
+                    if len(w_long_raw):
+                        target.loc[w_long_raw.index] = w_long_raw.values
+                else:
+                    n_bot = max(1, int(n * bottom_pct))
+                    shorts = zrow.nsmallest(n_bot).index
+                    if sma is not None:
+                        px_today = closes.loc[dt]
+                        sma_today = sma.loc[dt]
+                        shorts = [t for t in shorts if not pd.isna(sma_today.get(t)) and px_today.get(t, np.nan) < sma_today.get(t)]
+                    w_short_raw = -vol_target_weights(lookback_window[list(shorts)], target_vol_per_pos) if len(shorts) else pd.Series(dtype=float)
+                    target = pd.Series(0.0, index=closes.columns)
+                    if len(w_long_raw):
+                        target.loc[w_long_raw.index] = w_long_raw.values
+                    if len(w_short_raw):
+                        target.loc[w_short_raw.index] = w_short_raw.values
+
                 target = apply_caps(target, single_name_cap, gross_eff)
 
                 turnover = float((target - held).abs().sum())
