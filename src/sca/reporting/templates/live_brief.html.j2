@@ -28,18 +28,44 @@ pre{background:#16191d;padding:10px;overflow:auto;color:#cdd6f4}
 
 <h3>Long picks (top by combined momentum)</h3>
 <table>
-<tr><th class="l">#</th><th class="l">Ticker</th><th>z</th><th>Weight %</th></tr>
+<tr><th class="l">#</th><th class="l">Ticker</th><th>Price</th><th>z</th><th>Weight</th><th>1w</th><th>1m</th><th>3m</th><th>6m</th><th>12m</th><th>Vol 30d</th><th>Days listed</th></tr>
 {% for p in s.longs %}
-<tr><td class="l">{{ loop.index }}</td><td class="l">{{ p.ticker }}</td><td>{{ "%+.2f"|format(p.z_score) }}</td><td class="ok">{{ "%.2f"|format(p.weight*100) }}%</td></tr>
+<tr>
+  <td class="l">{{ loop.index }}</td>
+  <td class="l">{{ p.ticker }}</td>
+  <td>{{ "%.2f"|format(p.last_price) }}</td>
+  <td>{{ "%+.2f"|format(p.z_score) }}</td>
+  <td class="ok">{{ "%.2f"|format(p.weight*100) }}%</td>
+  <td class="{{ 'ok' if p.ret_1w>=0 else 'bad' }}">{{ "%+.1f"|format(p.ret_1w*100) }}%</td>
+  <td class="{{ 'ok' if p.ret_1m>=0 else 'bad' }}">{{ "%+.1f"|format(p.ret_1m*100) }}%</td>
+  <td class="{{ 'ok' if p.ret_3m>=0 else 'bad' }}">{{ "%+.1f"|format(p.ret_3m*100) }}%</td>
+  <td class="{{ 'ok' if p.ret_6m>=0 else 'bad' }}">{{ "%+.1f"|format(p.ret_6m*100) }}%</td>
+  <td class="{{ 'ok' if p.ret_12m>=0 else 'bad' }}">{{ "%+.1f"|format(p.ret_12m*100) }}%</td>
+  <td>{{ "%.0f"|format(p.realized_vol_30d*100) }}%</td>
+  <td>{{ p.days_listed }}</td>
+</tr>
 {% endfor %}
 </table>
 
 {% if s.shorts %}
 <h3>Short picks</h3>
 <table>
-<tr><th class="l">#</th><th class="l">Ticker</th><th>z</th><th>Weight %</th></tr>
+<tr><th class="l">#</th><th class="l">Ticker</th><th>Price</th><th>z</th><th>Weight</th><th>1w</th><th>1m</th><th>3m</th><th>6m</th><th>12m</th><th>Vol 30d</th><th>Days listed</th></tr>
 {% for p in s.shorts %}
-<tr><td class="l">{{ loop.index }}</td><td class="l">{{ p.ticker }}</td><td>{{ "%+.2f"|format(p.z_score) }}</td><td class="bad">{{ "%.2f"|format(p.weight*100) }}%</td></tr>
+<tr>
+  <td class="l">{{ loop.index }}</td>
+  <td class="l">{{ p.ticker }}</td>
+  <td>{{ "%.2f"|format(p.last_price) }}</td>
+  <td>{{ "%+.2f"|format(p.z_score) }}</td>
+  <td class="bad">{{ "%.2f"|format(p.weight*100) }}%</td>
+  <td class="{{ 'ok' if p.ret_1w>=0 else 'bad' }}">{{ "%+.1f"|format(p.ret_1w*100) }}%</td>
+  <td class="{{ 'ok' if p.ret_1m>=0 else 'bad' }}">{{ "%+.1f"|format(p.ret_1m*100) }}%</td>
+  <td class="{{ 'ok' if p.ret_3m>=0 else 'bad' }}">{{ "%+.1f"|format(p.ret_3m*100) }}%</td>
+  <td class="{{ 'ok' if p.ret_6m>=0 else 'bad' }}">{{ "%+.1f"|format(p.ret_6m*100) }}%</td>
+  <td class="{{ 'ok' if p.ret_12m>=0 else 'bad' }}">{{ "%+.1f"|format(p.ret_12m*100) }}%</td>
+  <td>{{ "%.0f"|format(p.realized_vol_30d*100) }}%</td>
+  <td>{{ p.days_listed }}</td>
+</tr>
 {% endfor %}
 </table>
 {% endif %}

@@ -18,6 +18,39 @@ class Pick:
     ticker: str
     z_score: float
     weight: float
+    last_price: float = 0.0
+    ret_1w: float = 0.0     # 5 trading-day return
+    ret_1m: float = 0.0     # 21 trading-day
+    ret_3m: float = 0.0     # 63 trading-day
+    ret_6m: float = 0.0     # 126 trading-day
+    ret_12m: float = 0.0    # 252 trading-day
+    realized_vol_30d: float = 0.0   # annualized 30d vol
+    days_listed: int = 0
+
+
+def _compute_pick_metrics(ticker: str, prices: pd.DataFrame) -> dict:
+    """Return real historical metrics from the price series. No synthesis."""
+    if ticker not in prices.columns:
+        return {}
+    s = prices[ticker].dropna()
+    if len(s) < 2:
+        return {}
+    last = float(s.iloc[-1])
+    out = {
+        "last_price": last,
+        "days_listed": int(s.notna().sum()),
+    }
+    for label, n in (("ret_1w", 5), ("ret_1m", 21), ("ret_3m", 63), ("ret_6m", 126), ("ret_12m", 252)):
+        if len(s) > n:
+            past = float(s.iloc[-1 - n])
+            if past > 0:
+                out[label] = last / past - 1.0
+    if len(s) >= 30:
+        import numpy as np
+        rets = s.pct_change().tail(30).dropna()
+        if len(rets) >= 5 and rets.std(ddof=0) > 0:
+            out["realized_vol_30d"] = float(rets.std(ddof=0) * np.sqrt(252))
+    return out
 
 
 @dataclass
@@ -106,8 +139,24 @@ def generate_sleeve_picks(
         if len(w_short): target.loc[w_short.index] = w_short.values
     target = apply_caps(target, single_name_cap, gross_cap)
 
-    longs_out = [Pick(t, float(last.get(t, 0.0)), float(target.get(t, 0.0))) for t in longs_idx if target.get(t, 0.0) > 0]
-    shorts_out = [Pick(t, float(last.get(t, 0.0)), float(target.get(t, 0.0))) for t in shorts_idx if target.get(t, 0.0) < 0]
+    def _mk_pick(t: str) -> Pick:
+        m = _compute_pick_metrics(t, closes)
+        return Pick(
+            ticker=t,
+            z_score=float(last.get(t, 0.0)),
+            weight=float(target.get(t, 0.0)),
+            last_price=float(m.get("last_price", 0.0)),
+            ret_1w=float(m.get("ret_1w", 0.0)),
+            ret_1m=float(m.get("ret_1m", 0.0)),
+            ret_3m=float(m.get("ret_3m", 0.0)),
+            ret_6m=float(m.get("ret_6m", 0.0)),
+            ret_12m=float(m.get("ret_12m", 0.0)),
+            realized_vol_30d=float(m.get("realized_vol_30d", 0.0)),
+            days_listed=int(m.get("days_listed", 0)),
+        )
+
+    longs_out = [_mk_pick(t) for t in longs_idx if target.get(t, 0.0) > 0]
+    shorts_out = [_mk_pick(t) for t in shorts_idx if target.get(t, 0.0) < 0]
 
     return SleevePicks(
         sleeve=sleeve, asset_class=asset_class,
