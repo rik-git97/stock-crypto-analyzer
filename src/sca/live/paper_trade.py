@@ -158,6 +158,40 @@ def _live_vs_backtest_summary(history_path: Path) -> list[dict]:
     return out
 
 
+def _paper_trade_history(history_path: Path, history_dir: Path) -> dict:
+    """Build a complete paper-trade tab: every weekly run + per-pick realized 5d returns
+    + cumulative equity curve (per sleeve and combined equal-weight)."""
+    if not history_path.exists():
+        return {"weekly_rows": [], "equity_curves": {}, "n_total_picks_tracked": 0}
+    df = pd.read_parquet(history_path)
+    if df.empty:
+        return {"weekly_rows": [], "equity_curves": {}, "n_total_picks_tracked": 0}
+    df = df.sort_values(["sleeve", "as_of"]).reset_index(drop=True)
+    weekly_rows = []
+    for _, r in df.iterrows():
+        weekly_rows.append({
+            "as_of": str(r["as_of"]),
+            "sleeve": str(r["sleeve"]).upper(),
+            "n_picks": int(r.get("n_longs", 0)),
+            "avg_5d_fwd_return": float(r.get("avg_5d_fwd_return", 0.0)),
+            "recorded_at": str(r.get("recorded_at", "")),
+        })
+    equity_curves: dict[str, list[dict]] = {}
+    for sleeve in df["sleeve"].unique():
+        sub = df[df["sleeve"] == sleeve].sort_values("as_of")
+        eq = 1.0
+        points = [{"as_of": "start", "equity": 1.0}]
+        for _, r in sub.iterrows():
+            eq *= (1.0 + float(r["avg_5d_fwd_return"]))
+            points.append({"as_of": str(r["as_of"]), "equity": float(eq)})
+        equity_curves[str(sleeve).upper()] = points
+    return {
+        "weekly_rows": weekly_rows,
+        "equity_curves": equity_curves,
+        "n_total_picks_tracked": int(df["n_longs"].fillna(0).sum()) if "n_longs" in df else 0,
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser()
     p.add_argument("cmd", choices=["run"], default="run", nargs="?")
@@ -347,6 +381,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # 5) brief
     from sca.live.notify import render_brief, send_email
+    paper_trade_tab = _paper_trade_history(track_path, history_dir)
     context = {
         "run_date": end,
         "sleeves": [picks_to_dict(p) for p in sleeve_picks_list],
@@ -355,6 +390,7 @@ def main(argv: list[str] | None = None) -> int:
         "options_ideas": options_ideas,
         "news_per_ticker": news_per_ticker,
         "health_summary": health_summary_rows,
+        "paper_trade": paper_trade_tab,
         "notes": notes or ["Run completed normally."],
         "limitations": LIMITATIONS,
     }
@@ -364,6 +400,22 @@ def main(argv: list[str] | None = None) -> int:
     (out_dir / "brief_latest.html").write_text(html, encoding="utf-8")
     (out_dir / f"brief_{end}.json").write_text(json.dumps(context, indent=2, default=str), encoding="utf-8")
     print(f"\nbrief saved: {brief_path}")
+
+    # Also write to docs/ for GitHub Pages deployment
+    docs_dir = Path("docs")
+    docs_dir.mkdir(exist_ok=True)
+    (docs_dir / "brief_latest.html").write_text(html, encoding="utf-8")
+    (docs_dir / f"brief_{end}.html").write_text(html, encoding="utf-8")
+    (docs_dir / "brief_latest.json").write_text(json.dumps(context, indent=2, default=str), encoding="utf-8")
+    # index.html redirects to brief_latest.html
+    index_html = (
+        "<!doctype html><meta charset=utf-8><title>SCA Brief</title>"
+        "<meta http-equiv=refresh content=\"0; url=brief_latest.html\">"
+        "<style>body{font-family:ui-monospace,monospace;background:#0b0d10;color:#e6e6e6;padding:24px}</style>"
+        "<p>Redirecting to <a href=\"brief_latest.html\" style=\"color:#ffaa00\">brief_latest.html</a>…</p>"
+    )
+    (docs_dir / "index.html").write_text(index_html, encoding="utf-8")
+    print(f"docs/ published: {docs_dir / 'brief_latest.html'}")
 
     # 6) email (best-effort)
     if not args.no_email:
