@@ -166,6 +166,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--out", default="output/live")
     p.add_argument("--no-email", action="store_true")
     p.add_argument("--sleeves", default="in,crypto")
+    p.add_argument("--capital-inr", type=float, default=50_000.0,
+                   help="Capital to allocate to the concentrated India portfolio")
+    p.add_argument("--portfolio-positions", type=int, default=12,
+                   help="Target number of positions in the concentrated portfolio")
+    p.add_argument("--no-news", action="store_true", help="Skip news aggregation")
+    p.add_argument("--no-options", action="store_true", help="Skip options ideas")
     args = p.parse_args(argv)
 
     end = args.end
@@ -178,6 +184,8 @@ def main(argv: list[str] | None = None) -> int:
 
     sleeves = [s.strip() for s in args.sleeves.split(",") if s.strip()]
     sleeve_picks_list = []
+    sleeve_prices_map: dict[str, pd.DataFrame] = {}
+    market = None  # for options regime check
 
     # 1) NSE deals daily snapshot (only when running today, only on weekdays in IST window)
     if "in" in sleeves:
@@ -196,26 +204,28 @@ def main(argv: list[str] | None = None) -> int:
         try:
             print(f"\n=== {sleeve.upper()} ===", flush=True)
             if sleeve == "in":
-                prices, market, in_source = _load_in(start, end)
+                prices, market_in, in_source = _load_in(start, end)
+                market = market_in
                 notes.append(f"India data source: {in_source}")
                 overlay, note = _build_in_overlay(prices, out_dir / "nse_deals.parquet")
                 if note:
                     notes.append(f"India overlay: {note}")
                 picks = generate_sleeve_picks(
-                    sleeve="in", asset_class="IN", prices=prices, market=market, sectors=None,
+                    sleeve="in", asset_class="IN", prices=prices, market=market_in, sectors=None,
                     long_only=True, use_combined_signal=False,
                     overlay_signal=overlay, overlay_weight=0.3 if overlay is not None else 0.0,
                 )
             elif sleeve == "crypto":
-                prices, market = _load_crypto(start, end)
+                prices, market_crypto = _load_crypto(start, end)
                 picks = generate_sleeve_picks(
-                    sleeve="crypto", asset_class="CRYPTO", prices=prices, market=market, sectors=None,
+                    sleeve="crypto", asset_class="CRYPTO", prices=prices, market=market_crypto, sectors=None,
                     long_only=False, use_combined_signal=False,
                 )
             else:
                 continue
             print(f"  {sleeve}: {picks.universe_size} signal-eligible, {len(picks.longs)} longs, {len(picks.shorts)} shorts, {len(picks.flagged)} flagged")
             sleeve_picks_list.append(picks)
+            sleeve_prices_map[sleeve] = prices
 
             # 3) compare LAST week's picks vs realized
             last_picks_files = sorted([f for f in history_dir.glob(f"picks_{sleeve}_*.json")])
@@ -245,12 +255,106 @@ def main(argv: list[str] | None = None) -> int:
             traceback.print_exc()
             notes.append(f"{sleeve}: pipeline error {e}")
 
+    # 5) build concentrated ₹50K portfolio from India picks
+    capital_portfolio = None
+    in_picks = next((p for p in sleeve_picks_list if p.sleeve == "in"), None)
+    if in_picks and in_picks.longs:
+        from sca.portfolio.sizing_for_capital import build_capital_portfolio, portfolio_to_dict
+        in_pick_dicts = [
+            {"ticker": pk.ticker, "z_score": pk.z_score, "weight": pk.weight,
+             "last_price": pk.last_price, "realized_vol_30d": pk.realized_vol_30d}
+            for pk in in_picks.longs
+        ]
+        cp = build_capital_portfolio(
+            picks=in_pick_dicts,
+            capital=args.capital_inr,
+            currency="INR",
+            target_n_positions=args.portfolio_positions,
+        )
+        capital_portfolio = portfolio_to_dict(cp)
+        notes.append(
+            f"₹{args.capital_inr:,.0f} portfolio: {len(cp.positions)} positions, "
+            f"₹{args.capital_inr - cp.cash_residual:,.0f} deployed "
+            f"({cp.deployed_pct*100:.1f}%), ₹{cp.cash_residual:,.0f} cash"
+        )
+
+    # 6) options ideas (NIFTY + BANKNIFTY, 3-month vertical spreads)
+    options_ideas = []
+    if not args.no_options and "in" in sleeves:
+        try:
+            from sca.ingestion.nse_options_chain import fetch_option_chain, chain_to_dataframe
+            from sca.portfolio.options_strategies import regime_pick_spread
+            from dataclasses import asdict as _asdict
+            for underlying in ("NIFTY", "BANKNIFTY"):
+                try:
+                    raw = fetch_option_chain(underlying)
+                    chain_df = chain_to_dataframe(raw)
+                    if chain_df.empty:
+                        continue
+                    spot = float(chain_df["underlying"].dropna().iloc[0]) if "underlying" in chain_df else 0
+                    # use Nifty 200-DMA as regime gate (already pulled above)
+                    regime_idx = market if "in" in sleeves else None
+                    sma200 = None
+                    if regime_idx is not None and len(regime_idx) >= 200:
+                        sma200 = float(regime_idx.tail(200).mean())
+                    idea = regime_pick_spread(chain_df, underlying, spot, sma200, target_dte=90)
+                    if idea:
+                        options_ideas.append(_asdict(idea))
+                except Exception as e:
+                    notes.append(f"options {underlying}: {e}")
+        except Exception as e:
+            notes.append(f"options module error: {e}")
+
+    # 7) news (per-pick headlines + risk flags)
+    news_per_ticker: dict = {}
+    if not args.no_news and "in" in sleeves:
+        try:
+            from sca.ingestion.news_rss import fetch_all_news, apply_flags, tag_per_ticker, newsitems_to_dict
+            from sca.ingestion.nse_company_aliases import fetch_aliases
+            aliases = fetch_aliases()
+            items = fetch_all_news()
+            items = apply_flags(items)
+            in_tickers = [pk.ticker for pk in (in_picks.longs if in_picks else [])]
+            in_aliases = {t: aliases.get(t, []) for t in in_tickers}
+            tagged = tag_per_ticker(items, in_aliases, max_per_ticker=3)
+            news_per_ticker = {t: newsitems_to_dict(v) for t, v in tagged.items() if v}
+            n_with_news = sum(1 for v in news_per_ticker.values() if v)
+            notes.append(f"News: {len(items)} headlines aggregated; {n_with_news} of {len(in_tickers)} picks tagged.")
+        except Exception as e:
+            notes.append(f"news pipeline: {e}")
+
+    # 8) signal health (IC = Spearman corr of z-score vs realized 5d-fwd return)
+    health_summary_rows: list[dict] = []
+    try:
+        from sca.live.health_metrics import compute_ic_for_picks, append_health, health_summary
+        health_path = history_dir / "health.parquet"
+        for sleeve in sleeves:
+            sp = sleeve_prices_map.get(sleeve)
+            if sp is None:
+                continue
+            old_picks_files = sorted([f for f in history_dir.glob(f"picks_{sleeve}_*.json")])
+            if len(old_picks_files) < 2:
+                continue
+            with open(old_picks_files[-2]) as f:
+                saved = json.load(f)
+            row = compute_ic_for_picks(saved, sp, fwd_days=5)
+            if not pd.isna(row.ic_5d):
+                append_health(row, health_path)
+                print(f"  IC[{sleeve}] {row.as_of}: {row.ic_5d:+.3f} (n={row.n_with_return})")
+        health_summary_rows = health_summary(health_path)
+    except Exception as e:
+        notes.append(f"health metrics: {e}")
+
     # 5) brief
     from sca.live.notify import render_brief, send_email
     context = {
         "run_date": end,
         "sleeves": [picks_to_dict(p) for p in sleeve_picks_list],
         "live_vs_backtest": _live_vs_backtest_summary(track_path),
+        "capital_portfolio": capital_portfolio,
+        "options_ideas": options_ideas,
+        "news_per_ticker": news_per_ticker,
+        "health_summary": health_summary_rows,
         "notes": notes or ["Run completed normally."],
         "limitations": LIMITATIONS,
     }
