@@ -1,0 +1,54 @@
+{
+  "sleeve": "crypto",
+  "asset_class": "CRYPTO",
+  "as_of": "2026-05-09",
+  "universe_size": 22,
+  "config_variant": "v1_long_short",
+  "longs": [
+    {
+      "ticker": "SKYAI/USDT:USDT",
+      "z_score": 1.4360048625923516,
+      "weight": 0.0031986513540864414
+    },
+    {
+      "ticker": "VVV/USDT:USDT",
+      "z_score": 1.1247345147482262,
+      "weight": 0.009405923507794109
+    },
+    {
+      "ticker": "PLAY/USDT:USDT",
+      "z_score": 0.6249192815634061,
+      "weight": 0.0027380752837740893
+    },
+    {
+      "ticker": "HYPE/USDT:USDT",
+      "z_score": -0.05612806609986639,
+      "weight": 0.021302812566476734
+    }
+  ],
+  "shorts": [
+    {
+      "ticker": "SAHARA/USDT:USDT",
+      "z_score": -0.48263064804203337,
+      "weight": -0.010133914038414607
+    },
+    {
+      "ticker": "BIO/USDT:USDT",
+      "z_score": -0.5090593582910093,
+      "weight": -0.003868559309732787
+    },
+    {
+      "ticker": "LAYER/USDT:USDT",
+      "z_score": -0.538812945403823,
+      "weight": -0.017998282646356847
+    },
+    {
+      "ticker": "DYM/USDT:USDT",
+      "z_score": -0.5792143452949319,
+      "weight": -0.010978554661003172
+    }
+  ],
+  "flagged": [
+    "ZEC/USDT:USDT"
+  ]
+}

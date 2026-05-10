@@ -1,0 +1,480 @@
+{
+  "sleeve": "in",
+  "asset_class": "IN",
+  "as_of": "2026-05-08",
+  "universe_size": 465,
+  "config_variant": "v2a_long_only",
+  "longs": [
+    {
+      "ticker": "FORCEMOT.NS",
+      "z_score": 3.634880319781717,
+      "weight": 0.014095039628838792
+    },
+    {
+      "ticker": "MCX.NS",
+      "z_score": 3.337557911685959,
+      "weight": 0.025294458522463804
+    },
+    {
+      "ticker": "NETWEB.NS",
+      "z_score": 3.2940286299383073,
+      "weight": 0.020301174319974136
+    },
+    {
+      "ticker": "GMDCLTD.NS",
+      "z_score": 3.0200841144223127,
+      "weight": 0.012880473195182263
+    },
+    {
+      "ticker": "KIRLOSENG.NS",
+      "z_score": 3.004799104909442,
+      "weight": 0.02211861975798942
+    },
+    {
+      "ticker": "ANANDRATHI.NS",
+      "z_score": 2.947765119694253,
+      "weight": 0.025294458522463804
+    },
+    {
+      "ticker": "CCL.NS",
+      "z_score": 2.794756300176936,
+      "weight": 0.02330575115861522
+    },
+    {
+      "ticker": "VEDL.NS",
+      "z_score": 2.57020027224195,
+      "weight": 0.004389599978669397
+    },
+    {
+      "ticker": "APARINDS.NS",
+      "z_score": 2.5004869297296444,
+      "weight": 0.01899112955507027
+    },
+    {
+      "ticker": "SYRMA.NS",
+      "z_score": 2.4140317523885018,
+      "weight": 0.019167973613096287
+    },
+    {
+      "ticker": "POWERINDIA.NS",
+      "z_score": 2.3682641666733515,
+      "weight": 0.023692020389773506
+    },
+    {
+      "ticker": "LAURUSLABS.NS",
+      "z_score": 2.2951141936125445,
+      "weight": 0.025294458522463804
+    },
+    {
+      "ticker": "INDIANB.NS",
+      "z_score": 2.1201953449364,
+      "weight": 0.021396421721308227
+    },
+    {
+      "ticker": "ABCAPITAL.NS",
+      "z_score": 2.1079722153572393,
+      "weight": 0.019277553031607216
+    },
+    {
+      "ticker": "GABRIEL.NS",
+      "z_score": 2.080477784621534,
+      "weight": 0.02121392582364753
+    },
+    {
+      "ticker": "LTF.NS",
+      "z_score": 2.0369748823401848,
+      "weight": 0.020725962553772723
+    },
+    {
+      "ticker": "SCHNEIDER.NS",
+      "z_score": 1.9930780992226704,
+      "weight": 0.01790581661143681
+    },
+    {
+      "ticker": "CUMMINSIND.NS",
+      "z_score": 1.967666961694224,
+      "weight": 0.025294458522463804
+    },
+    {
+      "ticker": "SHRIRAMFIN.NS",
+      "z_score": 1.9361283068714898,
+      "weight": 0.017079805091124507
+    },
+    {
+      "ticker": "CHENNPETRO.NS",
+      "z_score": 1.8148936684955037,
+      "weight": 0.016673003840855304
+    },
+    {
+      "ticker": "KARURVYSYA.NS",
+      "z_score": 1.7953965852199278,
+      "weight": 0.018865777288801757
+    },
+    {
+      "ticker": "BHARATFORG.NS",
+      "z_score": 1.7944525962654652,
+      "weight": 0.024345787238320354
+    },
+    {
+      "ticker": "MUTHOOTFIN.NS",
+      "z_score": 1.760643406508164,
+      "weight": 0.022337606194934738
+    },
+    {
+      "ticker": "RBLBANK.NS",
+      "z_score": 1.7467128571774553,
+      "weight": 0.02230360355020237
+    },
+    {
+      "ticker": "ASHOKLEY.NS",
+      "z_score": 1.7179014949421914,
+      "weight": 0.015727972957554324
+    },
+    {
+      "ticker": "GLENMARK.NS",
+      "z_score": 1.6300894978041292,
+      "weight": 0.025294458522463804
+    },
+    {
+      "ticker": "GPIL.NS",
+      "z_score": 1.5907437348053426,
+      "weight": 0.023528333123788405
+    },
+    {
+      "ticker": "GESHIP.NS",
+      "z_score": 1.5817767854069662,
+      "weight": 0.023456165769058214
+    },
+    {
+      "ticker": "EMCURE.NS",
+      "z_score": 1.5737805779661906,
+      "weight": 0.019622653208171845
+    },
+    {
+      "ticker": "CRAFTSMAN.NS",
+      "z_score": 1.5681897564448812,
+      "weight": 0.01804689513760567
+    },
+    {
+      "ticker": "ADANIPOWER.NS",
+      "z_score": 1.5403814121567505,
+      "weight": 0.025294458522463804
+    },
+    {
+      "ticker": "UNIONBANK.NS",
+      "z_score": 1.5388750953290933,
+      "weight": 0.017938476193579293
+    },
+    {
+      "ticker": "HINDALCO.NS",
+      "z_score": 1.5158131894518312,
+      "weight": 0.025294458522463804
+    },
+    {
+      "ticker": "ABSLAMC.NS",
+      "z_score": 1.5147116452491585,
+      "weight": 0.02289376641185371
+    },
+    {
+      "ticker": "DELHIVERY.NS",
+      "z_score": 1.4861999179034737,
+      "weight": 0.025294458522463804
+    },
+    {
+      "ticker": "FEDERALBNK.NS",
+      "z_score": 1.4533661676087135,
+      "weight": 0.025294458522463804
+    },
+    {
+      "ticker": "CANBK.NS",
+      "z_score": 1.4199785769625763,
+      "weight": 0.02185860124624661
+    },
+    {
+      "ticker": "BSE.NS",
+      "z_score": 1.3922089958940913,
+      "weight": 0.02097844627678579
+    },
+    {
+      "ticker": "TATASTEEL.NS",
+      "z_score": 1.3771176354040793,
+      "weight": 0.025294458522463804
+    },
+    {
+      "ticker": "ABDL.NS",
+      "z_score": 1.3338081960522339,
+      "weight": 0.01646859600027739
+    },
+    {
+      "ticker": "HEROMOTOCO.NS",
+      "z_score": 1.318602990480795,
+      "weight": 0.025294458522463804
+    },
+    {
+      "ticker": "SAIL.NS",
+      "z_score": 1.3115782350898302,
+      "weight": 0.025294458522463804
+    },
+    {
+      "ticker": "GALLANTT.NS",
+      "z_score": 1.292918886668161,
+      "weight": 0.00998580399857122
+    },
+    {
+      "ticker": "HBLENGINE.NS",
+      "z_score": 1.282671323482012,
+      "weight": 0.01875991928031121
+    },
+    {
+      "ticker": "ANURAS.NS",
+      "z_score": 1.281492323065462,
+      "weight": 0.025294458522463804
+    },
+    {
+      "ticker": "DATAPATTNS.NS",
+      "z_score": 1.278236259653368,
+      "weight": 0.01797541843990386
+    },
+    {
+      "ticker": "AUBANK.NS",
+      "z_score": 1.2398756394904384,
+      "weight": 0.02189783867575481
+    },
+    {
+      "ticker": "USHAMART.NS",
+      "z_score": 1.233366290709437,
+      "weight": 0.025141635436144814
+    },
+    {
+      "ticker": "SCI.NS",
+      "z_score": 1.2264189061430084,
+      "weight": 0.015272428588052367
+    },
+    {
+      "ticker": "NAM-INDIA.NS",
+      "z_score": 1.1969909425026954,
+      "weight": 0.015098504566690258
+    },
+    {
+      "ticker": "MAHABANK.NS",
+      "z_score": 1.1911276560903483,
+      "weight": 0.020493766135330823
+    },
+    {
+      "ticker": "CUB.NS",
+      "z_score": 1.1841310374549054,
+      "weight": 0.021320597113390564
+    },
+    {
+      "ticker": "KEI.NS",
+      "z_score": 1.1684584649045808,
+      "weight": 0.025020155655414055
+    },
+    {
+      "ticker": "ZYDUSWELL.NS",
+      "z_score": 1.1581642773884,
+      "weight": 0.015054963841093479
+    },
+    {
+      "ticker": "GRANULES.NS",
+      "z_score": 1.148765561014953,
+      "weight": 0.025294458522463804
+    },
+    {
+      "ticker": "GRAPHITE.NS",
+      "z_score": 1.1201772267823626,
+      "weight": 0.021047989444077986
+    },
+    {
+      "ticker": "BEL.NS",
+      "z_score": 1.0942392783055488,
+      "weight": 0.025294458522463804
+    },
+    {
+      "ticker": "MRPL.NS",
+      "z_score": 1.0682546057405196,
+      "weight": 0.017945231330354177
+    },
+    {
+      "ticker": "SBIN.NS",
+      "z_score": 1.055397188863496,
+      "weight": 0.02375883072396362
+    },
+    {
+      "ticker": "TITAN.NS",
+      "z_score": 1.010078137285156,
+      "weight": 0.025294458522463804
+    },
+    {
+      "ticker": "SAILIFE.NS",
+      "z_score": 1.0100347142771822,
+      "weight": 0.025294458522463804
+    },
+    {
+      "ticker": "JINDALSTEL.NS",
+      "z_score": 0.9724728445623053,
+      "weight": 0.025294458522463804
+    },
+    {
+      "ticker": "TVSMOTOR.NS",
+      "z_score": 0.9404117266793784,
+      "weight": 0.024581653213162323
+    },
+    {
+      "ticker": "TEGA.NS",
+      "z_score": 0.9336768482321824,
+      "weight": 0.025294458522463804
+    },
+    {
+      "ticker": "HINDZINC.NS",
+      "z_score": 0.931580385953205,
+      "weight": 0.02451282450773114
+    },
+    {
+      "ticker": "JKTYRE.NS",
+      "z_score": 0.9234546951745493,
+      "weight": 0.021772173650925944
+    },
+    {
+      "ticker": "EICHERMOT.NS",
+      "z_score": 0.9018506717267496,
+      "weight": 0.022130095298280587
+    },
+    {
+      "ticker": "POLYCAB.NS",
+      "z_score": 0.8891221736330176,
+      "weight": 0.023738491005155234
+    },
+    {
+      "ticker": "TIMKEN.NS",
+      "z_score": 0.8789869476694118,
+      "weight": 0.024949602679489383
+    },
+    {
+      "ticker": "NMDC.NS",
+      "z_score": 0.871675787502887,
+      "weight": 0.025294458522463804
+    },
+    {
+      "ticker": "JMFINANCIL.NS",
+      "z_score": 0.8521582733140409,
+      "weight": 0.02113130632516478
+    },
+    {
+      "ticker": "NATCOPHARM.NS",
+      "z_score": 0.8515457175100656,
+      "weight": 0.025294458522463804
+    },
+    {
+      "ticker": "J&KBANK.NS",
+      "z_score": 0.8513804901379309,
+      "weight": 0.02092703884054625
+    },
+    {
+      "ticker": "NAVINFLUOR.NS",
+      "z_score": 0.8502550939592031,
+      "weight": 0.025294458522463804
+    },
+    {
+      "ticker": "BANKINDIA.NS",
+      "z_score": 0.8431558385605616,
+      "weight": 0.021826738906825627
+    },
+    {
+      "ticker": "KAJARIACER.NS",
+      "z_score": 0.8310538898679912,
+      "weight": 0.01792079411111575
+    },
+    {
+      "ticker": "NYKAA.NS",
+      "z_score": 0.8105975958309479,
+      "weight": 0.025294458522463804
+    },
+    {
+      "ticker": "IFCI.NS",
+      "z_score": 0.8101887706907475,
+      "weight": 0.01827286777272454
+    },
+    {
+      "ticker": "GRSE.NS",
+      "z_score": 0.8048621615304525,
+      "weight": 0.011363727767814203
+    },
+    {
+      "ticker": "JSL.NS",
+      "z_score": 0.798044546360344,
+      "weight": 0.025294458522463804
+    },
+    {
+      "ticker": "IDEA.NS",
+      "z_score": 0.7855719623759159,
+      "weight": 0.025294458522463804
+    },
+    {
+      "ticker": "PAYTM.NS",
+      "z_score": 0.7805802605261116,
+      "weight": 0.017962620397162662
+    },
+    {
+      "ticker": "MOTHERSON.NS",
+      "z_score": 0.7715040929050128,
+      "weight": 0.017830812967091575
+    },
+    {
+      "ticker": "ASTERDM.NS",
+      "z_score": 0.755781047713762,
+      "weight": 0.025294458522463804
+    },
+    {
+      "ticker": "NAVA.NS",
+      "z_score": 0.7512060178121278,
+      "weight": 0.017681619795583525
+    },
+    {
+      "ticker": "ENDURANCE.NS",
+      "z_score": 0.7475681823029295,
+      "weight": 0.02244459078581939
+    },
+    {
+      "ticker": "APLAPOLLO.NS",
+      "z_score": 0.7310211163657302,
+      "weight": 0.020711581297808982
+    },
+    {
+      "ticker": "SAMMAANCAP.NS",
+      "z_score": 0.7279418825155516,
+      "weight": 0.022973688947453382
+    },
+    {
+      "ticker": "STARHEALTH.NS",
+      "z_score": 0.6960216760658777,
+      "weight": 0.025294458522463804
+    },
+    {
+      "ticker": "ONGC.NS",
+      "z_score": 0.6937241729653515,
+      "weight": 0.025294458522463804
+    },
+    {
+      "ticker": "JSWSTEEL.NS",
+      "z_score": 0.6780391435360547,
+      "weight": 0.025294458522463804
+    },
+    {
+      "ticker": "IIFL.NS",
+      "z_score": 0.6754662407398186,
+      "weight": 0.018073981959035076
+    },
+    {
+      "ticker": "JBCHEPHARM.NS",
+      "z_score": 0.6685626526865706,
+      "weight": 0.025294458522463804
+    }
+  ],
+  "shorts": [],
+  "flagged": [
+    "NATIONALUM.NS",
+    "HINDCOPPER.NS",
+    "GVT&D.NS"
+  ]
+}

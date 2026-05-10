@@ -1,0 +1,84 @@
+name: Weekly paper-trade
+
+on:
+  schedule:
+    # Every Monday 03:30 UTC = 09:00 IST. Crypto runs daily for fresher picks.
+    - cron: "30 3 * * 1"
+    # Daily crypto refresh — 04:00 UTC every day (crypto is 24/7)
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+    inputs:
+      sleeves:
+        description: "Comma-separated sleeves (us,in,crypto)"
+        required: false
+        default: "us,in,crypto"
+
+permissions:
+  contents: write
+
+jobs:
+  paper-trade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Optional SMTP — set as repo secrets if you want email delivery.
+      SCA_SMTP_HOST: ${{ secrets.SCA_SMTP_HOST }}
+      SCA_SMTP_PORT: ${{ secrets.SCA_SMTP_PORT }}
+      SCA_SMTP_USER: ${{ secrets.SCA_SMTP_USER }}
+      SCA_SMTP_PASS: ${{ secrets.SCA_SMTP_PASS }}
+      SCA_EMAIL_FROM: ${{ secrets.SCA_EMAIL_FROM }}
+      SCA_EMAIL_TO: ${{ secrets.SCA_EMAIL_TO }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+          pip install pyarrow
+
+      - name: Determine sleeves
+        id: sleeves
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            if [ "${{ github.event.schedule }}" = "0 4 * * *" ]; then
+              echo "sleeves=crypto" >> $GITHUB_OUTPUT
+            else
+              echo "sleeves=us,in,crypto" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "sleeves=${{ inputs.sleeves || 'us,in,crypto' }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run paper-trade
+        run: |
+          python -m sca.live.paper_trade run --sleeves "${{ steps.sleeves.outputs.sleeves }}"
+
+      - name: Commit picks + brief back to repo
+        run: |
+          git config user.name "sca-bot"
+          git config user.email "sca-bot@users.noreply.github.com"
+          git add output/live/history/ output/live/brief_*.html output/live/brief_*.json output/live/brief_latest.html output/live/nse_deals.parquet 2>/dev/null || true
+          if git diff --staged --quiet; then
+            echo "no changes to commit"
+          else
+            git commit -m "chore(live): paper-trade run $(date -u +%Y-%m-%d) sleeves=${{ steps.sleeves.outputs.sleeves }}"
+            git push
+          fi
+
+      - name: Upload brief as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: brief-${{ github.run_number }}
+          path: |
+            output/live/brief_latest.html
+            output/live/history/picks_*.json
+          retention-days: 90
