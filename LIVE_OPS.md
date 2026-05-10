@@ -67,6 +67,35 @@ Each run, BEFORE generating new picks, the runner:
 
 After 8+ weeks of data the brief shows a live-vs-backtest comparison table. **If live Sharpe < (backtest Sharpe − 1.0) for 8+ weeks, the strategy is dead and the backtest was a curve-fit.** That's the gate before any real capital.
 
+## Kite Connect (Zerodha) — optional India data upgrade
+
+The pipeline auto-detects Kite Connect for cleaner Indian price data and falls back
+to yfinance if Kite isn't configured. Two ways to make Kite active:
+
+**Option 1 — In a Claude Code session (no setup):**
+The Kite MCP server is connected. I can call read-only tools (LTP, quotes, historical,
+holdings, positions) directly. No env vars needed; the MCP holds your browser-authed
+session. Order placement tools require explicit per-trade approval.
+
+**Option 2 — In the automated pipeline (cron / GitHub Actions):**
+Requires Kite Connect API subscription (~₹2000/year) and these env vars:
+
+```
+KITE_API_KEY=your_api_key
+KITE_ACCESS_TOKEN=your_daily_access_token
+```
+
+Access tokens expire daily by SEBI mandate — there is no refresh token. To use Kite
+in cloud you must rotate `KITE_ACCESS_TOKEN` in GitHub repo Secrets each morning.
+Realistic options:
+
+- Skip Kite in cloud — keep yfinance there, use Kite only locally after login
+- Build a small daily script that completes the OAuth flow on your laptop and pushes
+  the new token to repo secrets via `gh secret set KITE_ACCESS_TOKEN`
+
+Until configured, the pipeline transparently falls back to yfinance and logs the
+data source in the brief's "Notes" section.
+
 ## India alt-data: what is and isn't included
 
 **Included now:**

@@ -31,9 +31,11 @@ SLEEVE_BACKTEST_SHARPE = {
 }
 
 
-def _load_in(start: str, end: str):
+def _load_in(start: str, end: str) -> tuple[pd.DataFrame, pd.Series | None, str]:
+    """Load Indian price data. Returns (prices, market_index, source).
+    Tries Kite Connect SDK first; falls back to yfinance on auth/missing-creds."""
     from sca.universe.nifty500 import fetch_nifty500_tickers
-    from sca.prices.yfinance_loader import load_prices
+    from sca.prices.yfinance_loader import load_prices as load_yf
     try:
         tickers = fetch_nifty500_tickers()
     except Exception:
@@ -44,11 +46,28 @@ def _load_in(start: str, end: str):
             "ADANIENT","ADANIPORTS","COALINDIA","GRASIM","JSWSTEEL","DRREDDY","INDUSINDBK","BRITANNIA","DIVISLAB","CIPLA",
             "HINDALCO","TATAMOTORS","BPCL","EICHERMOT","HEROMOTOCO","UPL","BAJAJ-AUTO","APOLLOHOSP","SHRIRAMFIN","LTIM",
         ]]
-    df = load_prices(tickers, start, end)
+
+    source = "yfinance"
+    df = pd.DataFrame()
+    try:
+        from sca.prices.kite_loader import load_prices_kite, KiteUnavailable
+        try:
+            df = load_prices_kite(tickers, start, end)
+            if not df.empty:
+                source = "kite"
+        except KiteUnavailable as e:
+            print(f"  [kite] unavailable, falling back to yfinance: {e}")
+    except ImportError:
+        pass
+
+    if df.empty:
+        df = load_yf(tickers, start, end)
+
     prices = df.pivot_table(index="date", columns="ticker", values="adj_close").sort_index()
-    nsei = load_prices(["^NSEI"], start, end)
+    nsei = load_yf(["^NSEI"], start, end)
     market = nsei.pivot_table(index="date", columns="ticker", values="adj_close")["^NSEI"] if not nsei.empty else None
-    return prices, market
+    print(f"  india data source: {source}")
+    return prices, market, source
 
 
 def _load_crypto(start: str, end: str):
@@ -177,7 +196,8 @@ def main(argv: list[str] | None = None) -> int:
         try:
             print(f"\n=== {sleeve.upper()} ===", flush=True)
             if sleeve == "in":
-                prices, market = _load_in(start, end)
+                prices, market, in_source = _load_in(start, end)
+                notes.append(f"India data source: {in_source}")
                 overlay, note = _build_in_overlay(prices, out_dir / "nse_deals.parquet")
                 if note:
                     notes.append(f"India overlay: {note}")
