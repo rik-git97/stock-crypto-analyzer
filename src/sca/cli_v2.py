@@ -1,13 +1,12 @@
 """v2 runner: variant grid per sleeve to honestly evaluate which fixes help.
 
-Variants (per sleeve):
-- v1_baseline:        plain 12-1 z, long/short
-- v2a_long_only:      plain 12-1 z, long-only
-- v2b_residual:       0.6 plain + 0.4 residual, long-only
-- v2c_sector_neutral: residual + sector-neutral z, long-only (US only — needs sector map)
-- v2d_full:           v2c + per-name 200-day trend filter (long only above 200-DMA)
+US sleeve removed by user request. Active sleeves: India + crypto only.
 
-Reports all variants in one comparison table per sleeve.
+Variants (per sleeve):
+- v1_baseline:    plain 12-1 z, long/short
+- v2a_long_only:  plain 12-1 z, long-only
+- v2b_residual:   0.6 plain + 0.4 beta-residual 12-1, long-only
+- v2d_full:       residual combined + per-name 200-day trend filter
 """
 from __future__ import annotations
 import argparse, hashlib, json, sys, traceback
@@ -21,7 +20,7 @@ LIMITATIONS = [
     "Walk-forward only — DSR / SPA / CPCV deferred to Phase 1.5.",
     "X / FinTwit excluded.",
     "ATR stops use close-to-close.",
-    "Sector map: GICS sectors from Wikipedia (US only). India/crypto: no sector neutralization in v2.",
+    "India: no sector neutralization in v2 (no clean GICS map for Nifty 500). Crypto: no sectors by nature.",
 ]
 
 
@@ -36,9 +35,8 @@ def _wide(df: pd.DataFrame, value_col: str) -> pd.DataFrame:
     return df.pivot_table(index="date", columns="ticker", values=value_col, aggfunc="last").sort_index()
 
 
-def _build_variants(prices: pd.DataFrame, market: pd.Series | None, sectors: dict[str, str] | None):
+def _build_variants(prices: pd.DataFrame, market: pd.Series | None):
     from sca.signals.momentum_xs import compute_momentum_zscore, compute_combined_signal
-
     variants = {}
     variants["v1_baseline"] = {
         "signal_df": compute_momentum_zscore(prices),
@@ -54,30 +52,16 @@ def _build_variants(prices: pd.DataFrame, market: pd.Series | None, sectors: dic
                                                   w_xs=0.6, w_residual=0.4),
             "long_only": True, "trend_filter_window": None,
         }
-        if sectors:
-            variants["v2c_sector_neutral"] = {
-                "signal_df": compute_combined_signal(prices, market=market, sectors=sectors,
-                                                      w_xs=0.6, w_residual=0.4),
-                "long_only": True, "trend_filter_window": None,
-            }
-            variants["v2d_full"] = {
-                "signal_df": compute_combined_signal(prices, market=market, sectors=sectors,
-                                                      w_xs=0.6, w_residual=0.4),
-                "long_only": True, "trend_filter_window": 200,
-            }
-        else:
-            variants["v2d_full"] = {
-                "signal_df": compute_combined_signal(prices, market=market, sectors=None,
-                                                      w_xs=0.6, w_residual=0.4),
-                "long_only": True, "trend_filter_window": 200,
-            }
+        variants["v2d_full"] = {
+            "signal_df": compute_combined_signal(prices, market=market, sectors=None,
+                                                  w_xs=0.6, w_residual=0.4),
+            "long_only": True, "trend_filter_window": 200,
+        }
     return variants
 
 
-def _run_variants(sleeve: str, prices: pd.DataFrame, asset_class: str, market: pd.Series | None,
-                  sectors: dict[str, str] | None, args):
+def _run_variants(sleeve: str, prices: pd.DataFrame, asset_class: str, market: pd.Series | None, args):
     from sca.backtest.engine import run_backtest
-    from sca.backtest.stats import tearsheet_metrics
     from sca.reporting.tearsheet import build_tearsheet, render_html
 
     if prices.empty or prices.shape[1] < 5 or prices.shape[0] < 260:
@@ -85,9 +69,8 @@ def _run_variants(sleeve: str, prices: pd.DataFrame, asset_class: str, market: p
         return {}
 
     print(f"  Universe: {prices.shape[1]} names, {prices.shape[0]} bars", flush=True)
-    variants = _build_variants(prices, market, sectors)
-    out_dir = Path(args.output)
-    out_dir.mkdir(parents=True, exist_ok=True)
+    variants = _build_variants(prices, market)
+    out_dir = Path(args.output); out_dir.mkdir(parents=True, exist_ok=True)
     summary: dict = {}
 
     for variant_name, vparams in variants.items():
@@ -137,7 +120,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--start", default=(date.today() - timedelta(days=750)).isoformat())
     p.add_argument("--end", default=date.today().isoformat())
     p.add_argument("--output", default="output")
-    p.add_argument("--sleeves", default="us,in,crypto")
+    p.add_argument("--sleeves", default="in,crypto")
     p.add_argument("--limit-universe", type=int, default=0)
     args = p.parse_args(argv)
 
@@ -148,22 +131,7 @@ def main(argv: list[str] | None = None) -> int:
         try:
             print(f"\n=== {sleeve.upper()} sleeve ===", flush=True)
             market = None
-            sectors = None
-            if sleeve == "us":
-                from sca.universe.sp500 import fetch_sp500_tickers, fetch_sp500_sectors
-                from sca.prices.yfinance_loader import load_prices
-                tickers = fetch_sp500_tickers()
-                sectors = fetch_sp500_sectors()
-                if args.limit_universe:
-                    tickers = tickers[: args.limit_universe]
-                print(f"  fetched {len(tickers)} S&P 500 tickers, {len(sectors)} sectors")
-                df = load_prices(tickers, args.start, args.end)
-                prices = _wide(df, "adj_close")
-                spy_df = load_prices(["SPY"], "2023-01-01", args.end)
-                market = (spy_df.pivot_table(index="date", columns="ticker", values="adj_close")["SPY"]
-                          if not spy_df.empty else None)
-                ac = "US"
-            elif sleeve == "in":
+            if sleeve == "in":
                 from sca.universe.nifty500 import fetch_nifty500_tickers
                 from sca.prices.yfinance_loader import load_prices
                 try:
@@ -182,7 +150,6 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"  fetched {len(tickers)} Indian tickers")
                 df = load_prices(tickers, args.start, args.end)
                 prices = _wide(df, "adj_close")
-                # Nifty index proxy: NIFTYBEES.NS or ^NSEI
                 idx_df = load_prices(["^NSEI"], "2023-01-01", args.end)
                 market = (idx_df.pivot_table(index="date", columns="ticker", values="adj_close")["^NSEI"]
                           if not idx_df.empty else None)
@@ -196,13 +163,13 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"  fetched {len(syms)} crypto perps")
                 df = load_crypto_ohlcv(syms, args.start, args.end)
                 prices = _wide(df, "close")
-                # BTC as market proxy
-                market = prices["BTC/USDT:USDT"] if "BTC/USDT:USDT" in prices.columns else prices.iloc[:, 0]
+                market = prices["BTC/USDT:USDT"] if "BTC/USDT:USDT" in prices.columns else (prices.iloc[:, 0] if not prices.empty else None)
                 ac = "CRYPTO"
             else:
+                print(f"  [skip] unknown sleeve {sleeve}")
                 continue
 
-            big_summary[sleeve] = _run_variants(sleeve, prices, ac, market, sectors, args)
+            big_summary[sleeve] = _run_variants(sleeve, prices, ac, market, args)
         except Exception as e:
             print(f"ERROR sleeve {sleeve}: {e}", file=sys.stderr)
             traceback.print_exc()

@@ -9,9 +9,9 @@ on:
   workflow_dispatch:
     inputs:
       sleeves:
-        description: "Comma-separated sleeves (us,in,crypto)"
+        description: "Comma-separated sleeves (in,crypto)"
         required: false
-        default: "us,in,crypto"
+        default: "in,crypto"
 
 permissions:
   contents: write
@@ -52,10 +52,10 @@ jobs:
             if [ "${{ github.event.schedule }}" = "0 4 * * *" ]; then
               echo "sleeves=crypto" >> $GITHUB_OUTPUT
             else
-              echo "sleeves=us,in,crypto" >> $GITHUB_OUTPUT
+              echo "sleeves=in,crypto" >> $GITHUB_OUTPUT
             fi
           else
-            echo "sleeves=${{ inputs.sleeves || 'us,in,crypto' }}" >> $GITHUB_OUTPUT
+            echo "sleeves=${{ inputs.sleeves || 'in,crypto' }}" >> $GITHUB_OUTPUT
           fi
 
       - name: Run paper-trade

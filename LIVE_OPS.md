@@ -1,10 +1,12 @@
 # Live Operations — Paper Trading via GitHub Actions
 
+> **2026-05-10 — US sleeve removed.** Focus narrowed to India (Nifty 500) + crypto (top 30 perps). Historical US backtest results remain in `RESULTS.md` / `RESULTS_V2.md` for reference but the system no longer trades US names.
+
 ## What this is
 
 A weekly autonomous paper-trade runner that:
-1. Pulls fresh data for US (S&P 500), India (Nifty 500), Crypto (top 30 perps)
-2. Generates picks per sleeve using the v2 best config (US + India: long-only top 20%, crypto: L/S)
+1. Pulls fresh data for India (Nifty 500), Crypto (top 30 perps) — US sleeve removed
+2. Generates picks per sleeve using the v2 best config (India: long-only top 20%, crypto: L/S)
 3. Pulls today's NSE bulk + block deals (smart-money flow) and accumulates into a rolling archive
 4. Compares **last week's saved picks** against this week's realized 5-day forward returns
 5. Tracks live Sharpe and compares it to backtest Sharpe — divergence > 1.0 over 8+ weeks = strategy is broken
@@ -16,7 +18,7 @@ A weekly autonomous paper-trade runner that:
 
 | Cron (UTC) | Local (IST) | What runs |
 |---|---|---|
-| `30 3 * * 1` | Mon 09:00 | All 3 sleeves (US, India, crypto) |
+| `30 3 * * 1` | Mon 09:00 | India + crypto |
 | `0 4 * * *` | Daily 09:30 | Crypto only (24/7 market needs daily refresh) |
 
 Both defined in [`.github/workflows/weekly-paper-trade.yml`](.github/workflows/weekly-paper-trade.yml).
@@ -50,8 +52,7 @@ output/live/
 ├── brief_latest.html               # Always the most recent
 ├── nse_deals.parquet               # Rolling NSE bulk+block deals archive
 └── history/
-    ├── picks_us_<date>.json        # Per-sleeve picks
-    ├── picks_in_<date>.json
+    ├── picks_in_<date>.json        # Per-sleeve picks
     ├── picks_crypto_<date>.json
     └── live_track.parquet          # Realized 5-day returns by sleeve, accumulating
 ```

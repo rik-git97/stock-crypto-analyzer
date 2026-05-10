@@ -1,4 +1,6 @@
-"""End-to-end CLI: pull universes, prices, run momentum backtest per sleeve, write tearsheets."""
+"""End-to-end CLI: pull universes, prices, run momentum backtest per sleeve, write tearsheets.
+
+US sleeve was removed by user request — focus narrowed to India (Nifty 500) + crypto (top 30 perps)."""
 from __future__ import annotations
 import argparse
 import hashlib
@@ -82,9 +84,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--end", default=date.today().isoformat())
     p.add_argument("--output", default="output")
     p.add_argument("--dry-run", action="store_true")
-    p.add_argument("--sleeves", default="us,in,crypto")
-    p.add_argument("--limit-universe", type=int, default=0,
-                   help="Cap universe size for faster runs (0 = no cap)")
+    p.add_argument("--sleeves", default="in,crypto")
+    p.add_argument("--limit-universe", type=int, default=0)
     args = p.parse_args(argv)
 
     sleeves = [s.strip() for s in args.sleeves.split(",") if s.strip()]
@@ -104,29 +105,11 @@ def main(argv: list[str] | None = None) -> int:
                 cols = [f"X{i}" for i in range(20)]
                 rets = rng.normal(0.0005, 0.02, (len(idx), 20))
                 prices = pd.DataFrame(100 * np.exp(rets.cumsum(axis=0)), index=idx, columns=cols)
-                ac = "US"
+                ac = "IN"
                 summary[sleeve] = _run_sleeve(sleeve, prices, ac, args, regime)
                 continue
 
-            if sleeve == "us":
-                from sca.universe.sp500 import fetch_sp500_tickers
-                from sca.prices.yfinance_loader import load_prices
-                tickers = fetch_sp500_tickers()
-                if args.limit_universe:
-                    tickers = tickers[: args.limit_universe]
-                print(f"  fetched {len(tickers)} S&P 500 tickers")
-                df = load_prices(tickers, args.start, args.end)
-                prices = _wide_close(df, "adj_close")
-                # regime filter via SPY
-                spy_df = load_prices(["SPY"], "2023-01-01", args.end)
-                spy_close = (
-                    spy_df.pivot_table(index="date", columns="ticker", values="adj_close")["SPY"]
-                    if not spy_df.empty else None
-                )
-                regime = spy_close
-                ac = "US"
-
-            elif sleeve == "in":
+            if sleeve == "in":
                 from sca.universe.nifty500 import fetch_nifty500_tickers
                 from sca.prices.yfinance_loader import load_prices
                 try:
@@ -158,6 +141,7 @@ def main(argv: list[str] | None = None) -> int:
                 prices = _wide_close(df, "close")
                 ac = "CRYPTO"
             else:
+                print(f"  [skip] unknown sleeve {sleeve}")
                 continue
 
             summary[sleeve] = _run_sleeve(sleeve, prices, ac, args, regime)

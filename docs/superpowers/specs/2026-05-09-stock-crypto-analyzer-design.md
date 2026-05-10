@@ -3,6 +3,7 @@
 **Date:** 2026-05-09
 **Author:** rikmitra20@gmail.com
 **Status:** Draft v1 — pending user review
+**Amendment 2026-05-10:** US sleeve removed by user request. Active sleeves: India (Nifty 500) + crypto (top 30 perps). Sections referencing US below are kept as historical record but are no longer in scope.
 
 ---
 

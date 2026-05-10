@@ -26,22 +26,9 @@ LIMITATIONS = [
 ]
 
 SLEEVE_BACKTEST_SHARPE = {
-    "us": 0.67,
     "in": 0.45,
     "crypto": 0.66,
 }
-
-
-def _load_us(start: str, end: str):
-    from sca.universe.sp500 import fetch_sp500_tickers, fetch_sp500_sectors
-    from sca.prices.yfinance_loader import load_prices
-    tickers = fetch_sp500_tickers()
-    sectors = fetch_sp500_sectors()
-    df = load_prices(tickers, start, end)
-    prices = df.pivot_table(index="date", columns="ticker", values="adj_close").sort_index()
-    spy = load_prices(["SPY"], start, end)
-    market = spy.pivot_table(index="date", columns="ticker", values="adj_close")["SPY"] if not spy.empty else None
-    return prices, market, sectors
 
 
 def _load_in(start: str, end: str):
@@ -159,7 +146,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--lookback-days", type=int, default=550, help="Days of price history to pull")
     p.add_argument("--out", default="output/live")
     p.add_argument("--no-email", action="store_true")
-    p.add_argument("--sleeves", default="us,in,crypto")
+    p.add_argument("--sleeves", default="in,crypto")
     args = p.parse_args(argv)
 
     end = args.end
@@ -189,13 +176,7 @@ def main(argv: list[str] | None = None) -> int:
     for sleeve in sleeves:
         try:
             print(f"\n=== {sleeve.upper()} ===", flush=True)
-            if sleeve == "us":
-                prices, market, sectors = _load_us(start, end)
-                picks = generate_sleeve_picks(
-                    sleeve="us", asset_class="US", prices=prices, market=market, sectors=sectors,
-                    long_only=True, use_combined_signal=False,
-                )
-            elif sleeve == "in":
+            if sleeve == "in":
                 prices, market = _load_in(start, end)
                 overlay, note = _build_in_overlay(prices, out_dir / "nse_deals.parquet")
                 if note:
